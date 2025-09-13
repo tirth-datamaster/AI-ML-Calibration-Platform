@@ -22,6 +22,16 @@ class CalibrationEngine:
         
         self.reference_values = {}  # For calculating calibration offsets
     
+    def _has_polynomial(self, polynomial):
+        """Safely check if polynomial coefficients exist"""
+        if polynomial is None:
+            return False
+        if isinstance(polynomial, (list, tuple)):
+            return len(polynomial) > 0
+        if isinstance(polynomial, np.ndarray):
+            return polynomial.size > 0
+        return bool(polynomial)
+    
     def apply_calibration(self, sensor_data):
         """Apply calibration to sensor data"""
         calibrated_data = sensor_data.copy()
@@ -34,7 +44,7 @@ class CalibrationEngine:
                 calibrated_value = self._apply_linear_calibration(raw_value, sensor_type)
                 
                 # Apply polynomial correction if available
-                if self.calibration_params[sensor_type]['polynomial']:
+                if self._has_polynomial(self.calibration_params[sensor_type]['polynomial']):
                     calibrated_value = self._apply_polynomial_calibration(calibrated_value, sensor_type)
                 
                 calibrated_data[sensor_type] = calibrated_value
@@ -53,7 +63,7 @@ class CalibrationEngine:
                 )
                 
                 # Apply polynomial correction
-                if self.calibration_params[sensor_type]['polynomial']:
+                if self._has_polynomial(self.calibration_params[sensor_type]['polynomial']):
                     calibrated_values = calibrated_values.apply(
                         lambda x: self._apply_polynomial_calibration(x, sensor_type)
                     )
@@ -73,7 +83,7 @@ class CalibrationEngine:
     def _apply_polynomial_calibration(self, value, sensor_type):
         """Apply polynomial calibration"""
         polynomial = self.calibration_params[sensor_type]['polynomial']
-        if polynomial:
+        if self._has_polynomial(polynomial):
             return np.polyval(polynomial, value)
         return value
     
@@ -199,8 +209,10 @@ class CalibrationEngine:
     
     def update_parameters(self, calibration_params, filter_params):
         """Update calibration and filter parameters"""
-        self.calibration_params.update(calibration_params)
-        self.filter_params.update(filter_params)
+        if calibration_params is not None:
+            self.calibration_params.update(calibration_params)
+        if filter_params is not None:
+            self.filter_params.update(filter_params)
     
     def get_calibration_summary(self):
         """Get summary of current calibration parameters"""
@@ -209,8 +221,8 @@ class CalibrationEngine:
             summary[sensor_type] = {
                 'linear_offset': params['offset'],
                 'linear_slope': params['slope'],
-                'has_polynomial': bool(params['polynomial']),
-                'polynomial_degree': len(params['polynomial']) - 1 if params['polynomial'] else 0
+                'has_polynomial': self._has_polynomial(params['polynomial']),
+                'polynomial_degree': len(params['polynomial']) - 1 if self._has_polynomial(params['polynomial']) else 0
             }
         
         summary['filter'] = self.filter_params.copy()
