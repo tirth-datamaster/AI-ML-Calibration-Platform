@@ -10,13 +10,9 @@ class AnomalyDetector:
     """Detects anomalies in sensor data using multiple methods"""
     
     def __init__(self):
-        self.isolation_forest = IsolationForest(
-            contamination=0.1,
-            random_state=42,
-            n_estimators=100
-        )
-        self.scaler = StandardScaler()
         self.fitted_models = {}
+        self.sensor_buffers = {}  # Rolling buffers for real-time prediction
+        self.buffer_size = 10     # Size of rolling buffer for each sensor
         
         # Statistical thresholds
         self.z_score_threshold = 3.0
@@ -115,15 +111,26 @@ class AnomalyDetector:
         
         # Fit and predict using Isolation Forest
         try:
-            scaled_features = self.scaler.fit_transform(features)
-            predictions = self.isolation_forest.fit_predict(scaled_features)
-            anomaly_scores = self.isolation_forest.decision_function(scaled_features)
+            # Create independent model instances for this sensor
+            isolation_forest = IsolationForest(
+                contamination=0.1,
+                random_state=42,
+                n_estimators=100
+            )
+            scaler = StandardScaler()
             
-            # Store fitted model
+            scaled_features = scaler.fit_transform(features)
+            predictions = isolation_forest.fit_predict(scaled_features)
+            anomaly_scores = isolation_forest.decision_function(scaled_features)
+            
+            # Store fitted model with independent instances
             self.fitted_models[sensor_type] = {
-                'isolation_forest': self.isolation_forest,
-                'scaler': self.scaler
+                'isolation_forest': isolation_forest,
+                'scaler': scaler
             }
+            
+            # Initialize rolling buffer for this sensor
+            self.sensor_buffers[sensor_type] = []
             
             # Extract anomalies
             anomaly_indices = np.where(predictions == -1)[0]
@@ -301,8 +308,25 @@ class AnomalyDetector:
             isolation_forest = model_info['isolation_forest']
             scaler = model_info['scaler']
             
-            # Create features for new data point
-            features = np.array([[new_data[sensor_type]]])  # Simplified for real-time
+            # Get current value
+            current_value = new_data[sensor_type]
+            
+            # Update rolling buffer for this sensor
+            if sensor_type not in self.sensor_buffers:
+                self.sensor_buffers[sensor_type] = []
+            
+            buffer = self.sensor_buffers[sensor_type]
+            buffer.append(current_value)
+            
+            # Maintain buffer size
+            if len(buffer) > self.buffer_size:
+                buffer.pop(0)
+            
+            # Create 9-dimensional feature vector matching _create_features
+            feature_vector = self._create_realtime_features(buffer, current_value)
+            
+            # Scale and predict
+            features = np.array([feature_vector])
             scaled_features = scaler.transform(features)
             
             prediction = isolation_forest.predict(scaled_features)[0]
@@ -313,6 +337,64 @@ class AnomalyDetector:
         except Exception as e:
             print(f"Error in anomaly prediction: {e}")
             return False, 0.0
+    
+    def _create_realtime_features(self, buffer, current_value):
+        """Create 9-dimensional feature vector for real-time prediction"""
+        feature_vector = [current_value]
+        
+        # Add lag features (3 features)
+        for lag in [1, 2, 3]:
+            if len(buffer) > lag:
+                feature_vector.append(buffer[-(lag + 1)])
+            else:
+                # Cold start: use current value
+                feature_vector.append(current_value)
+        
+        # Add rolling statistics (4 features)
+        if len(buffer) >= 2:
+            window_values = buffer[-min(5, len(buffer)):]
+            feature_vector.extend([
+                np.mean(window_values),
+                np.std(window_values),
+                np.min(window_values),
+                np.max(window_values)
+            ])
+        else:
+            # Cold start: use current value for all stats
+            feature_vector.extend([current_value, 0.0, current_value, current_value])
+        
+        # Add rate of change (1 feature)
+        if len(buffer) >= 2:
+            feature_vector.append(buffer[-1] - buffer[-2])
+        else:
+            # Cold start: no change
+            feature_vector.append(0.0)
+        
+        return feature_vector
+    
+    def update_sensor_buffer(self, sensor_type, value):
+        """Manually update sensor buffer (useful for batch updates)"""
+        if sensor_type not in self.sensor_buffers:
+            self.sensor_buffers[sensor_type] = []
+        
+        buffer = self.sensor_buffers[sensor_type]
+        buffer.append(value)
+        
+        # Maintain buffer size
+        if len(buffer) > self.buffer_size:
+            buffer.pop(0)
+    
+    def get_sensor_buffer_status(self, sensor_type):
+        """Get current status of sensor buffer"""
+        if sensor_type not in self.sensor_buffers:
+            return {"buffer_size": 0, "ready_for_prediction": False}
+        
+        buffer = self.sensor_buffers[sensor_type]
+        return {
+            "buffer_size": len(buffer),
+            "buffer_values": buffer.copy(),
+            "ready_for_prediction": sensor_type in self.fitted_models
+        }
     
     def update_thresholds(self, z_score_threshold=None, iqr_multiplier=None, 
                          stuck_threshold=None, spike_threshold=None):
