@@ -39,52 +39,164 @@ if 'db_manager' not in st.session_state:
 
 def main():
     st.set_page_config(
-        page_title="AI/ML Calibration Platform",
-        page_icon="🔧",
+        page_title="Sensor Intelligence Platform",
+        page_icon="🌟",
         layout="wide",
         initial_sidebar_state="expanded"
     )
     
-    st.title("🔧 AI/ML-Enhanced Calibration Platform")
-    st.markdown("Real-time sensor monitoring with intelligent anomaly detection and drift prediction")
+    # Custom CSS for aesthetic UI
+    st.markdown("""
+    <style>
+    .main {
+        padding-top: 2rem;
+    }
+    .stMetric {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 1rem;
+        border-radius: 15px;
+        color: white;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    .metric-container {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 20px;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        border: 1px solid #f0f2f6;
+        margin: 0.5rem 0;
+    }
+    .status-good {
+        background: linear-gradient(135deg, #4CAF50, #45a049);
+        color: white;
+        padding: 0.8rem;
+        border-radius: 12px;
+        text-align: center;
+        font-weight: 600;
+    }
+    .status-warning {
+        background: linear-gradient(135deg, #ff9800, #f57c00);
+        color: white;
+        padding: 0.8rem;
+        border-radius: 12px;
+        text-align: center;
+        font-weight: 600;
+    }
+    .status-danger {
+        background: linear-gradient(135deg, #f44336, #d32f2f);
+        color: white;
+        padding: 0.8rem;
+        border-radius: 12px;
+        text-align: center;
+        font-weight: 600;
+    }
+    .hero-section {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 2rem;
+        border-radius: 25px;
+        color: white;
+        text-align: center;
+        margin-bottom: 2rem;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+    .sensor-card {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 18px;
+        box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+        border-left: 5px solid #667eea;
+        margin: 1rem 0;
+        transition: transform 0.3s ease;
+    }
+    .sensor-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.12);
+    }
+    .sidebar .stSelectbox > div > div {
+        background: #f8f9fa;
+        border-radius: 10px;
+    }
+    h1, h2, h3 {
+        color: #2c3e50;
+        font-weight: 600;
+    }
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 8px;
+    }
+    .stTabs [data-baseweb="tab"] {
+        background: #f8f9fa;
+        border-radius: 12px;
+        border: 1px solid #e9ecef;
+        padding: 0.5rem 1.5rem;
+        font-weight: 500;
+    }
+    .stTabs [aria-selected="true"] {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+    </style>
+    """, unsafe_allow_html=True)
     
-    # Sidebar controls
-    st.sidebar.header("Control Panel")
+    # Hero section
+    st.markdown("""
+    <div class="hero-section">
+        <h1 style="margin:0; color:white; font-size:2.5rem;">🌟 Sensor Intelligence Platform</h1>
+        <p style="margin:0.5rem 0 0 0; color:rgba(255,255,255,0.9); font-size:1.2rem;">
+            AI-powered sensor monitoring with real-time analytics
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
     
-    # Simulation controls
-    st.sidebar.subheader("Simulation Controls")
-    if st.sidebar.button("Start Simulation" if not st.session_state.simulation_running else "Stop Simulation"):
+    # Elegant sidebar
+    st.sidebar.markdown("### 🎛️ Control Panel")
+    
+    # Simulation controls with better styling
+    st.sidebar.markdown("#### 🔄 System Status")
+    
+    # Status indicator
+    status_color = "🟢" if st.session_state.simulation_running else "🔴"
+    status_text = "ACTIVE" if st.session_state.simulation_running else "INACTIVE"
+    st.sidebar.markdown(f"{status_color} **{status_text}**")
+    
+    # Elegant button
+    button_text = "⏸️ Stop Monitoring" if st.session_state.simulation_running else "▶️ Start Monitoring"
+    if st.sidebar.button(button_text, use_container_width=True):
         st.session_state.simulation_running = not st.session_state.simulation_running
         if st.session_state.simulation_running:
-            st.sidebar.success("Simulation started!")
+            st.sidebar.success("✅ Monitoring started!")
         else:
-            st.sidebar.info("Simulation stopped!")
+            st.sidebar.info("⏸️ Monitoring paused!")
     
-    # Threshold configuration
-    st.sidebar.subheader("Alert Thresholds")
-    for sensor_type in st.session_state.alert_thresholds.keys():
-        st.sidebar.write(f"**{sensor_type.title()}**")
-        col1, col2 = st.sidebar.columns(2)
-        with col1:
-            st.session_state.alert_thresholds[sensor_type]['min'] = st.number_input(
-                f"Min {sensor_type}", 
-                value=st.session_state.alert_thresholds[sensor_type]['min'],
-                key=f"min_{sensor_type}"
-            )
-        with col2:
-            st.session_state.alert_thresholds[sensor_type]['max'] = st.number_input(
-                f"Max {sensor_type}", 
-                value=st.session_state.alert_thresholds[sensor_type]['max'],
-                key=f"max_{sensor_type}"
-            )
+    st.sidebar.markdown("---")
     
-    # Main dashboard tabs
-    tab1, tab2, tab3, tab4, tab5 = st.tabs([
-        "📊 Real-time Dashboard", 
-        "🔍 Anomaly Detection", 
-        "📈 Drift Prediction", 
-        "📋 Reports", 
-        "⚙️ Calibration"
+    # Simplified threshold configuration
+    st.sidebar.markdown("#### ⚠️ Alert Settings")
+    
+    # Quick preset buttons
+    col1, col2 = st.sidebar.columns(2)
+    with col1:
+        if st.button("🛡️ Safe", use_container_width=True):
+            st.session_state.alert_thresholds = {
+                'temperature': {'min': 15, 'max': 40},
+                'pressure': {'min': 950, 'max': 1050},
+                'vibration': {'min': 0, 'max': 15},
+                'humidity': {'min': 20, 'max': 90}
+            }
+    with col2:
+        if st.button("⚡ Strict", use_container_width=True):
+            st.session_state.alert_thresholds = {
+                'temperature': {'min': 20, 'max': 30},
+                'pressure': {'min': 990, 'max': 1020},
+                'vibration': {'min': 0, 'max': 5},
+                'humidity': {'min': 40, 'max': 70}
+            }
+    
+    # Clean and modern tabs
+    tab1, tab2, tab3, tab4 = st.tabs([
+        "📊 Live Monitoring", 
+        "🛡️ AI Detection", 
+        "📈 Predictions", 
+        "📋 Analytics"
     ])
     
     with tab1:
@@ -99,16 +211,14 @@ def main():
     with tab4:
         show_reports()
     
-    with tab5:
-        show_calibration()
-    
     # Auto-refresh for real-time updates
     if st.session_state.simulation_running:
         time.sleep(1)
         st.rerun()
 
 def show_realtime_dashboard():
-    st.header("Real-time Sensor Dashboard")
+    # Clean header
+    st.markdown("## 📊 Live Sensor Monitoring")
     
     # Generate new sensor data if simulation is running
     if st.session_state.simulation_running:
@@ -137,68 +247,69 @@ def show_realtime_dashboard():
     recent_data = st.session_state.db_manager.get_recent_data(limit=100)
     
     if not recent_data.empty:
-        # Current readings display
-        st.subheader("Current Sensor Readings")
-        
         # Get latest readings
         latest = recent_data.iloc[-1]
         
-        col1, col2, col3, col4 = st.columns(4)
+        # Beautiful sensor cards
+        col1, col2 = st.columns(2)
         
         with col1:
-            temp_status = get_status_color(
-                latest['temperature'], 
-                st.session_state.alert_thresholds['temperature']
-            )
-            st.metric(
-                "🌡️ Temperature", 
-                f"{latest['temperature']:.2f}°C",
-                delta=f"{latest['temperature'] - recent_data['temperature'].iloc[-2]:.2f}" if len(recent_data) > 1 else None
-            )
-            st.markdown(f"Status: {temp_status}")
+            # Temperature card
+            temp_status = "🟢 Normal" if st.session_state.alert_thresholds['temperature']['min'] <= latest['temperature'] <= st.session_state.alert_thresholds['temperature']['max'] else "🟠 Alert"
+            st.markdown(f"""
+            <div class="sensor-card">
+                <h3 style="margin:0; color:#667eea;">🌡️ Temperature</h3>
+                <h1 style="margin:0.5rem 0; color:#2c3e50; font-size:2.5rem;">{latest['temperature']:.1f}°C</h1>
+                <p style="margin:0; color:#7f8c8d; font-size:1.1rem;">{temp_status}</p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # Vibration card
+            vib_status = "🟢 Normal" if st.session_state.alert_thresholds['vibration']['min'] <= latest['vibration'] <= st.session_state.alert_thresholds['vibration']['max'] else "🟠 Alert"
+            st.markdown(f"""
+            <div class="sensor-card">
+                <h3 style="margin:0; color:#667eea;">📳 Vibration</h3>
+                <h1 style="margin:0.5rem 0; color:#2c3e50; font-size:2.5rem;">{latest['vibration']:.1f}</h1>
+                <p style="margin:0; color:#7f8c8d; font-size:1.1rem;">m/s² • {vib_status}</p>
+            </div>
+            """, unsafe_allow_html=True)
         
         with col2:
-            pressure_status = get_status_color(
-                latest['pressure'], 
-                st.session_state.alert_thresholds['pressure']
-            )
-            st.metric(
-                "🔘 Pressure", 
-                f"{latest['pressure']:.2f} hPa",
-                delta=f"{latest['pressure'] - recent_data['pressure'].iloc[-2]:.2f}" if len(recent_data) > 1 else None
-            )
-            st.markdown(f"Status: {pressure_status}")
+            # Pressure card
+            press_status = "🟢 Normal" if st.session_state.alert_thresholds['pressure']['min'] <= latest['pressure'] <= st.session_state.alert_thresholds['pressure']['max'] else "🟠 Alert"
+            st.markdown(f"""
+            <div class="sensor-card">
+                <h3 style="margin:0; color:#667eea;">🔘 Pressure</h3>
+                <h1 style="margin:0.5rem 0; color:#2c3e50; font-size:2.5rem;">{latest['pressure']:.0f}</h1>
+                <p style="margin:0; color:#7f8c8d; font-size:1.1rem;">hPa • {press_status}</p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # Humidity card
+            hum_status = "🟢 Normal" if st.session_state.alert_thresholds['humidity']['min'] <= latest['humidity'] <= st.session_state.alert_thresholds['humidity']['max'] else "🟠 Alert"
+            st.markdown(f"""
+            <div class="sensor-card">
+                <h3 style="margin:0; color:#667eea;">💧 Humidity</h3>
+                <h1 style="margin:0.5rem 0; color:#2c3e50; font-size:2.5rem;">{latest['humidity']:.0f}%</h1>
+                <p style="margin:0; color:#7f8c8d; font-size:1.1rem;">{hum_status}</p>
+            </div>
+            """, unsafe_allow_html=True)
         
-        with col3:
-            vibration_status = get_status_color(
-                latest['vibration'], 
-                st.session_state.alert_thresholds['vibration']
-            )
-            st.metric(
-                "📳 Vibration", 
-                f"{latest['vibration']:.2f} m/s²",
-                delta=f"{latest['vibration'] - recent_data['vibration'].iloc[-2]:.2f}" if len(recent_data) > 1 else None
-            )
-            st.markdown(f"Status: {vibration_status}")
+        st.markdown("<br>", unsafe_allow_html=True)
         
-        with col4:
-            humidity_status = get_status_color(
-                latest['humidity'], 
-                st.session_state.alert_thresholds['humidity']
-            )
-            st.metric(
-                "💧 Humidity", 
-                f"{latest['humidity']:.2f}%",
-                delta=f"{latest['humidity'] - recent_data['humidity'].iloc[-2]:.2f}" if len(recent_data) > 1 else None
-            )
-            st.markdown(f"Status: {humidity_status}")
-        
-        # Time series plots
-        st.subheader("Sensor Trends")
+        # Simple trend chart
+        st.markdown("### 📈 Live Trends")
         fig = st.session_state.visualizer.create_sensor_trends(recent_data)
         st.plotly_chart(fig, use_container_width=True)
     else:
-        st.info("No sensor data available. Start the simulation to begin monitoring.")
+        st.markdown("""
+        <div class="sensor-card" style="text-align:center; padding:3rem;">
+            <h2 style="color:#667eea; margin:0;">🚀 Ready to Monitor</h2>
+            <p style="color:#7f8c8d; margin:1rem 0 0 0; font-size:1.2rem;">
+                Click "Start Monitoring" in the sidebar to begin live sensor tracking
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
 
 def show_anomaly_detection():
     st.header("Anomaly Detection Analysis")
